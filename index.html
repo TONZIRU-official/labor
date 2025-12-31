@@ -2,43 +2,26 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>第四強制労働区</title>
     <style>
-        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; }
+        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; touch-action: manipulation; user-select: none; }
         #error-screen { display: none; padding-top: 30vh; color: #ff4444; }
         #game-screen { display: none; width: 100vw; height: 100vh; position: relative; background: #050505; }
         #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 10px; border-bottom: 2px solid #333; z-index: 1000; }
-        
-        /* 石：絶対座標で配置し、クリック判定を最大化 */
-        .rock { 
-            position: absolute; 
-            font-size: 80px; 
-            transform: translate(-50%, -50%); 
-            cursor: pointer; 
-            z-index: 500;
-            user-select: none;
-            display: block;
-        }
-        /* クリックした瞬間に少し小さくして「叩いた感」を出す */
+        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; z-index: 500; display: block; -webkit-tap-highlight-color: transparent; }
         .rock:active { transform: translate(-50%, -50%) scale(0.8); }
-
         #finish-screen { display: none; padding-top: 20vh; }
-        .code-box { color: #ff0; font-size: 28px; border: 2px dashed #ff0; padding: 15px; display: inline-block; margin: 20px; background: #111; }
+        .code-box { color: #ff0; font-size: 24px; border: 2px dashed #ff0; padding: 15px; display: block; margin: 20px auto; background: #111; width: 80%; word-break: break-all; }
+        .copy-btn { background: #0f0; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="error-screen">
-        <h1>⚠️ ACCESS DENIED</h1>
-        <p>Discordの /labor からアクセスしてください。</p>
-    </div>
+    <div id="error-screen"><h1>⚠️ ACCESS DENIED</h1><p>Discordからアクセスしてください</p></div>
 
     <div id="game-screen">
-        <div id="ui">
-            <h2 id="counter">進捗: 0 / 200</h2>
-            <div id="status">石を叩け！</div>
-        </div>
+        <div id="ui"><h2 id="counter">進捗: 0 / 200</h2><div id="status">石を叩け！</div></div>
         <div id="rock" class="rock" onclick="hit()">🪨</div>
     </div>
 
@@ -46,7 +29,8 @@
         <h1>⛏️ 作業完了 ⛏️</h1>
         <p>完了コード:</p>
         <div id="resultCode" class="code-box"></div>
-        <p>Discordで <strong>/claim</strong> と入力して報告せよ</p>
+        <button class="copy-btn" onclick="copyCode()">コードをコピー</button>
+        <p style="font-size: 0.8em; margin-top: 20px;">コピーしてDiscordの /claim で報告せよ<br>報告後はページを更新すれば再労働可能だ</p>
     </div>
 
     <script>
@@ -54,7 +38,6 @@
         const uid = urlParams.get('id');
         const rock = document.getElementById('rock');
 
-        // IDが正しくなければエラー、正しければゲーム開始
         if (!uid || isNaN(uid) || uid.length < 15) {
             document.getElementById('error-screen').style.display = 'block';
         } else {
@@ -66,21 +49,22 @@
         const quota = 200;
 
         function generateSecret(id) {
-            const date = new Date().toISOString().slice(0, 10);
+            const now = new Date();
+            // 10秒ごとに値が変わるキーを使用することで、連続クリアしても別のコードになる
+            const timeKey = Math.floor(now.getTime() / 10000); 
             const salt = "SECRET_ZIMU_99"; 
-            const raw = id + date + salt;
+            const raw = id + timeKey + salt;
             let hash = 0;
             for (let i = 0; i < raw.length; i++) {
                 hash = ((hash << 5) - hash) + raw.charCodeAt(i);
                 hash |= 0; 
             }
-            return "RX-" + Math.abs(hash).toString(36).toUpperCase() + "-" + btoa(id).slice(-4).toUpperCase();
+            return "RX-" + Math.abs(hash).toString(36).toUpperCase() + "-" + btoa(id + timeKey).slice(-5).toUpperCase();
         }
 
         function move() {
-            // UIに被らないよう、画面の中央80%の範囲で移動
-            const x = Math.floor(Math.random() * 80) + 10;
-            const y = Math.floor(Math.random() * 60) + 20;
+            const x = Math.floor(Math.random() * 70) + 15;
+            const y = Math.floor(Math.random() * 60) + 25;
             rock.style.left = x + "%";
             rock.style.top = y + "%";
         }
@@ -90,12 +74,16 @@
             count++;
             document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
             move();
-            
             if (count >= quota) {
                 document.getElementById('game-screen').style.display = 'none';
                 document.getElementById('finish-screen').style.display = 'block';
                 document.getElementById('resultCode').innerText = generateSecret(uid);
             }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('resultCode').innerText;
+            navigator.clipboard.writeText(code).then(() => { alert("コピーしました！"); });
         }
     </script>
 </body>
