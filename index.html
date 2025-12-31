@@ -4,27 +4,39 @@
     <meta charset="UTF-8">
     <title>第四強制労働区</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; text-align: center; margin: 0; overflow: hidden; }
-        #error-screen { display: none; margin-top: 30vh; color: red; }
-        #game-screen { display: none; }
-        #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 15px; border-bottom: 2px solid #333; }
-        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; }
+        /* 全角スペースや不要な文字をすべて除去しました */
+        body { background: #000; color: #0f0; font-family: monospace; text-align: center; margin: 0; overflow: hidden; height: 100vh; }
+        #error-screen { display: none; margin-top: 30vh; color: red; font-size: 24px; }
+        #game-screen { display: none; width: 100vw; height: 100vh; position: relative; }
+        #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 15px; border-bottom: 2px solid #333; z-index: 100; }
+        
+        /* 石が確実にクリックできるよう z-index を追加 */
+        .rock { 
+            position: absolute; 
+            font-size: 80px; 
+            transform: translate(-50%, -50%); 
+            cursor: pointer; 
+            z-index: 50;
+            user-select: none;
+        }
+        
+        #finish-screen { display: none; margin-top: 25vh; }
         .code-box { color: #ff0; font-size: 32px; border: 3px dashed #ff0; padding: 20px; display: inline-block; margin: 20px; background: #110; }
     </style>
 </head>
 <body>
 
-    <div id="error-screen"><h1>⚠️ ACCESS DENIED ⚠️</h1></div>
+    <div id="error-screen"><h1>⚠️ ACCESS DENIED ⚠️</h1><p>Discordからアクセスしてください</p></div>
 
     <div id="game-screen">
         <div id="ui">
             <h2 id="counter">進捗: 0 / 200</h2>
             <div id="status">CLICK THE ROCK</div>
         </div>
-        <div id="rock" onclick="hit()">🪨</div>
+        <div id="rock" class="rock" onclick="hit()" style="left: 50%; top: 50%;">🪨</div>
     </div>
 
-    <div id="finish-screen" style="display:none; margin-top:25vh;">
+    <div id="finish-screen">
         <h1>⛏️ ノルマ達成 ⛏️</h1>
         <p>完了コード（一度のみ有効）:</p>
         <div id="resultCode" class="code-box"></div>
@@ -35,23 +47,21 @@
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get('id');
 
-        if (!uid || uid.length < 15) {
+        // IDの判定を厳格化
+        if (!uid || isNaN(uid) || uid.length < 15) {
             document.getElementById('error-screen').style.display = 'block';
         } else {
             document.getElementById('game-screen').style.display = 'block';
-            move();
+            move(); // 最初の位置を決定
         }
 
         let count = 0;
         const quota = 200;
 
-        // ランダムに見えるが計算可能なコード生成
         function generateRandomLookingCode(id) {
             const date = new Date().toISOString().slice(0, 10);
-            const salt = "SECRET_ZIMU_99"; // Bot側と合わせる合言葉
+            const salt = "SECRET_ZIMU_99"; 
             const raw = id + date + salt;
-            
-            // 文字列を複雑に混ぜる処理
             let hash = 0;
             for (let i = 0; i < raw.length; i++) {
                 hash = ((hash << 5) - hash) + raw.charCodeAt(i);
@@ -62,14 +72,18 @@
 
         function move() {
             const r = document.getElementById('rock');
-            r.style.left = (Math.random() * 80 + 10) + "%";
-            r.style.top = (Math.random() * 60 + 25) + "%";
+            // 画面端に行き過ぎないように調整
+            const x = Math.random() * 80 + 10;
+            const y = Math.random() * 60 + 25;
+            r.style.left = x + "%";
+            r.style.top = y + "%";
         }
 
         function hit() {
             if (count >= quota) return;
             count++;
             document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
+            document.getElementById('status').innerText = "✅ HIT!";
             move();
             if (count >= quota) {
                 document.getElementById('game-screen').style.display = 'none';
