@@ -2,37 +2,28 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>地下労働施設 - 第四強制労働区</title>
+    <title>地下労働施設 - 極限作業区</title>
     <script src="https://cdn.jsdelivr.net/npm/@discord/embedded-app-sdk@1.0.0/dist/index.js"></script>
     <style>
-        body { background: #050505; color: #44ff44; font-family: 'serif'; text-align: center; overflow: hidden; }
-        #labor-box { margin-top: 10vh; border: 3px solid #333; display: inline-block; padding: 40px; background: #111; }
-        .rock { font-size: 50px; cursor: pointer; user-select: none; transition: 0.1s; display: inline-block; }
-        .rock:active { transform: scale(0.8) rotate(10deg); }
-        #progress-bar { width: 300px; height: 20px; border: 1px solid #44ff44; margin: 20px auto; }
-        #progress-fill { width: 0%; height: 100%; background: #44ff44; transition: 0.3s; }
-        .warning { color: red; font-weight: bold; animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+        body { background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; overflow: hidden; height: 100vh; margin: 0; }
+        #game-container { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .rock { font-size: 80px; cursor: pointer; position: absolute; user-select: none; transition: 0.05s; }
+        #ui { position: fixed; top: 20px; text-align: center; width: 100%; z-index: 100; pointer-events: none; }
+        .blackout { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: none; z-index: 1000; align-items: center; justify-content: center; color: white; }
     </style>
 </head>
 <body>
-    <div id="labor-box">
-        <h1>⛏️ 第四強制労働区 ⛏️</h1>
-        <p>石を砕いて「クズ鉄」を150個集めろ。サボるな。</p>
-        
-        <div id="status">監視中...</div>
-        <div id="progress-bar"><div id="progress-fill"></div></div>
-        <h2 id="counter">0 / 150</h2>
-        
-        <div id="rock-area">
-            <div class="rock" id="rock">🪨</div>
-        </div>
-
-        <div id="finishArea" style="display:none;">
-            <p class="warning">労働完了。解放コードをメモせよ：</p>
-            <h2 id="resultCode" style="color:yellow; font-size:30px;"></h2>
-        </div>
+    <div id="ui">
+        <h1>⛏️ 極限労働区 ⛏️</h1>
+        <p id="status">作業を継続せよ</p>
+        <h2 id="counter">0 / 200</h2>
     </div>
+
+    <div id="game-container">
+        <div class="rock" id="rock" style="top: 50%; left: 50%;">🪨</div>
+    </div>
+
+    <div id="blackout" class="blackout"><h1>🔌 停電発生 🔌</h1></div>
 
     <script>
         const discordSdk = new window.discordSdk.DiscordSDK("1455043505750806703");
@@ -40,48 +31,57 @@
         setup();
 
         let count = 0;
-        let lastClick = Date.now();
-        const quota = 150; // ノルマを150に増加
+        const quota = 200; // ノルマを200へ
+        const rock = document.getElementById('rock');
+        const counter = document.getElementById('counter');
+        const status = document.getElementById('status');
+        const blackout = document.getElementById('blackout');
 
-        // 日替わりコード
+        // 日替わりコード生成
         const date = new Date().toISOString().slice(0, 10);
         const dailyCode = "LABOR-" + btoa(date).slice(0, 5).toUpperCase();
 
-        const rock = document.getElementById('rock');
-        const fill = document.getElementById('progress-fill');
-        const counter = document.getElementById('counter');
-
         rock.onclick = () => {
+            // 20%の確率で空振り（理不尽1）
+            if (Math.random() < 0.2) {
+                status.innerText = "💢 空振り！";
+                status.style.color = "red";
+                moveRock();
+                return;
+            }
+
             count++;
-            lastClick = Date.now();
-            updateUI();
-            
-            // 叩くたびに岩が揺れる演出
-            rock.style.marginLeft = Math.random() * 10 + "px";
-            
-            if(count >= quota) {
-                document.getElementById('rock-area').style.display = 'none';
-                document.getElementById('finishArea').style.display = 'block';
-                document.getElementById('resultCode').innerText = dailyCode;
-                document.getElementById('status').innerText = "ノルマ達成";
+            counter.innerText = `${count} / ${quota}`;
+            status.innerText = "採掘成功";
+            status.style.color = "#0f0";
+
+            // 岩がランダムに逃げる（理不尽2）
+            moveRock();
+
+            // 40回ごとに停電（理不尽3）
+            if (count % 40 === 0 && count < quota) {
+                triggerBlackout();
+            }
+
+            if (count >= quota) {
+                rock.style.display = 'none';
+                status.innerHTML = `<h2>労働完了。コード：<br><span style="color:yellow;">${dailyCode}</span></h2>`;
             }
         };
 
-        function updateUI() {
-            counter.innerText = `${count} / ${quota}`;
-            fill.style.width = (count / quota * 100) + "%";
+        function moveRock() {
+            const x = Math.random() * 70 + 15; // 15% - 85% の間
+            const y = Math.random() * 70 + 15;
+            rock.style.left = x + "%";
+            rock.style.top = y + "%";
         }
 
-        // 監視システム：5秒間操作がないとカウントが少し減る（大変にする演出）
-        setInterval(() => {
-            if (Date.now() - lastClick > 5000 && count > 0 && count < quota) {
-                count--;
-                updateUI();
-                document.getElementById('status').innerHTML = "<span class='warning'>⚠️ 監視員「おい、手が止まってるぞ！」 (-1)</span>";
-            } else if (count < quota) {
-                document.getElementById('status').innerText = "監視中...";
-            }
-        }, 2000);
+        function triggerBlackout() {
+            blackout.style.display = 'flex';
+            setTimeout(() => {
+                blackout.style.display = 'none';
+            }, 3000); // 3秒間何もできない
+        }
     </script>
 </body>
 </html>
