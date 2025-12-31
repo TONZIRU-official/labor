@@ -2,149 +2,81 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地下労働施設 - 極限作業区</title>
-    <script src="https://cdn.jsdelivr.net/npm/@discord/embedded-app-sdk@1.0.0/dist/index.js"></script>
-    <style>あ
-        body {
-            background: #000; color: #0f0; font-family: 'Consolas', monospace;
-            overflow: hidden; height: 100vh; margin: 0; user-select: none;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        #ui {
-            position: fixed; top: 0; width: 100%; text-align: center;
-            background: rgba(0,0,0,0.8); z-index: 10; padding: 10px 0; border-bottom: 1px solid #333;
-        }
-        #game-canvas {
-            width: 100vw; height: 100vh; position: relative;
-            /* 背景全体がクリック可能になるよう設定 */
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><text x="0" y="25" style="font-size: 25px;">⛏️</text></svg>') 15 15, auto;
-        }
-        .rock {
-            position: absolute; font-size: 80px; transition: 0.1s;
-            transform: translate(-50%, -50%); /* 中央揃え */
-            filter: drop-shadow(0 0 10px #555);
-            pointer-events: none; /* 岩自体はクリック判定なし */
-        }
-        .blackout {
-            position: fixed; top:0; left:0; width:100%; height:100%; background:#000;
-            display:none; z-index:1000; align-items:center; justify-content:center; color:red; font-size:30px;
-        }
-        #progress-bar { width: 80%; height: 10px; border: 1px solid #0f0; margin: 10px auto; }
-        #progress-fill { width: 0%; height: 100%; background: #0f0; transition: 0.2s; }
-        .code-display { color: yellow; font-size: 24px; border: 2px dashed yellow; padding: 10px; margin-top: 20px; display: inline-block; }
+    <title>第四強制労働区</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; text-align: center; margin: 0; overflow: hidden; }
+        #error-screen { display: none; margin-top: 30vh; color: red; }
+        #game-screen { display: none; }
+        #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 15px; border-bottom: 2px solid #333; }
+        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; }
+        .code-box { color: #ff0; font-size: 32px; border: 3px dashed #ff0; padding: 20px; display: inline-block; margin: 20px; background: #110; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div>⛏️ 第四強制労働区 ⛏️</div>
-    <div id="progress-bar"><div id="progress-fill"></div></div>
-    <div id="counter">進捗: 0 / 200</div>
-    <div id="status" style="font-size: 12px; color: #888;">背景をクリックして石を砕け！</div>
-</div>
+    <div id="error-screen"><h1>⚠️ ACCESS DENIED ⚠️</h1></div>
 
-<div id="game-canvas">
-    <div id="rock" class="rock">🪨</div>
-</div>
+    <div id="game-screen">
+        <div id="ui">
+            <h2 id="counter">進捗: 0 / 200</h2>
+            <div id="status">CLICK THE ROCK</div>
+        </div>
+        <div id="rock" onclick="hit()">🪨</div>
+    </div>
 
-<div id="blackout" class="blackout">⚠️ 停電中：復旧まで待機せよ ⚠️</div>
+    <div id="finish-screen" style="display:none; margin-top:25vh;">
+        <h1>⛏️ ノルマ達成 ⛏️</h1>
+        <p>完了コード（一度のみ有効）:</p>
+        <div id="resultCode" class="code-box"></div>
+        <p>Discordで /claim を実行せよ</p>
+    </div>
 
-<script>
-    // --- 初期設定 ---
-    const TARGET_ID = "1455043505750806703"; // ★BotのApplication ID
-    const QUOTA = 200;
-    let count = 0;
-    let isBlackout = false;
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const uid = urlParams.get('id');
 
-    const gameCanvas = document.getElementById('game-canvas');
-    const rock = document.getElementById('rock');
-    const counterText = document.getElementById('counter');
-    const fill = document.getElementById('progress-fill');
-    const status = document.getElementById('status');
-    const blackout = document.getElementById('blackout');
-
-    // 日替わりコード (Bot側と一致)
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const dailyCode = "LABOR-" + btoa(dateStr).slice(0, 5).toUpperCase();
-
-    // --- Discord SDK 初期化 (失敗しても無視して進む) ---
-    async function initSDK() {
-        try {
-            const discordSdk = new window.discordSdk.DiscordSDK(TARGET_ID);
-            await discordSdk.ready();
-            console.log("Discord SDK Ready");
-        } catch (e) {
-            console.log("Running in browser mode (Discord SDK not loaded)");
-        }
-    }
-    initSDK();
-
-    // --- 岩の移動 ---
-    function moveRock() {
-        const x = Math.random() * (window.innerWidth - 100) + 50; // 画面端に寄りすぎないように調整
-        const y = Math.random() * (window.innerHeight - 200) + 100; // UIとかぶらないように調整
-        rock.style.left = x + "px";
-        rock.style.top = y + "px";
-    }
-
-    // --- 停電イベント ---
-    function triggerBlackout() {
-        if (isBlackout) return;
-        isBlackout = true;
-        blackout.style.display = 'flex';
-        status.innerText = "🚨 停電発生！作業中断！";
-        status.style.color = "red";
-        setTimeout(() => {
-            blackout.style.display = 'none';
-            isBlackout = false;
-            status.innerText = "⚙️ 作業再開";
-            status.style.color = "#888";
-        }, 3500); // 3.5秒間停電
-    }
-
-    // --- クリック処理 (背景全体で判定) ---
-    gameCanvas.onclick = (e) => {
-        if (isBlackout || count >= QUOTA) return;
-
-        // 15%の確率で失敗 (空振り)
-        if (Math.random() < 0.15) {
-            status.innerText = "❌ 空振り！もっと集中しろ！";
-            status.style.color = "red";
-            return; // カウントは増えない
+        if (!uid || uid.length < 15) {
+            document.getElementById('error-screen').style.display = 'block';
+        } else {
+            document.getElementById('game-screen').style.display = 'block';
+            move();
         }
 
-        count++;
-        status.innerText = "✅ 採掘成功";
-        status.style.color = "#0f0";
-        
-        // UI更新
-        counterText.innerText = `進捗: ${count} / ${QUOTA}`;
-        fill.style.width = (count / QUOTA * 100) + "%";
+        let count = 0;
+        const quota = 200;
 
-        // 岩を逃がす
-        moveRock();
-
-        // 50回ごとに停電
-        if (count % 50 === 0 && count < QUOTA) {
-            triggerBlackout();
+        // ランダムに見えるが計算可能なコード生成
+        function generateRandomLookingCode(id) {
+            const date = new Date().toISOString().slice(0, 10);
+            const salt = "SECRET_ZIMU_99"; // Bot側と合わせる合言葉
+            const raw = id + date + salt;
+            
+            // 文字列を複雑に混ぜる処理
+            let hash = 0;
+            for (let i = 0; i < raw.length; i++) {
+                hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+                hash |= 0; 
+            }
+            return "RX-" + Math.abs(hash).toString(36).toUpperCase() + "-" + btoa(id).slice(-4).toUpperCase();
         }
 
-        // 完了
-        if (count >= QUOTA) {
-            gameCanvas.style.cursor = 'default';
-            rock.style.display = "none";
-            document.getElementById('ui').innerHTML = `
-                <h1>🎉 ノルマ達成 🎉</h1>
-                <div class="code-display">コード: ${dailyCode}</div>
-                <p>このコードを Discord の /claim コマンドで報告しろ。</p>
-            `;
+        function move() {
+            const r = document.getElementById('rock');
+            r.style.left = (Math.random() * 80 + 10) + "%";
+            r.style.top = (Math.random() * 60 + 25) + "%";
         }
-    };
 
-    // 初期位置
-    moveRock();
-</script>
-
+        function hit() {
+            if (count >= quota) return;
+            count++;
+            document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
+            move();
+            if (count >= quota) {
+                document.getElementById('game-screen').style.display = 'none';
+                document.getElementById('finish-screen').style.display = 'block';
+                document.getElementById('resultCode').innerText = generateRandomLookingCode(uid);
+            }
+        }
+    </script>
 </body>
 </html>
