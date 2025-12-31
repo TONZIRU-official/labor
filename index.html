@@ -2,60 +2,86 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地下労働施設</title>
+    <title>地下労働施設 - 第四強制労働区</title>
     <script src="https://cdn.jsdelivr.net/npm/@discord/embedded-app-sdk@1.0.0/dist/index.js"></script>
     <style>
-        body { background: #0c0c0c; color: #00ff41; font-family: 'Consolas', monospace; text-align: center; margin-top: 50px; }
-        .container { border: 2px solid #00ff41; padding: 20px; display: inline-block; box-shadow: 0 0 15px #00ff41; }
-        #mineBtn { background: #00ff41; color: black; border: none; padding: 20px 40px; font-size: 1.5rem; cursor: pointer; margin: 20px; font-weight: bold; }
-        #mineBtn:active { transform: scale(0.95); background: #00cc33; }
-        .hidden { display: none; }
-        .code { font-size: 2rem; color: #ffff00; text-shadow: 0 0 5px #ffff00; }
+        body { background: #050505; color: #44ff44; font-family: 'serif'; text-align: center; overflow: hidden; }
+        #labor-box { margin-top: 10vh; border: 3px solid #333; display: inline-block; padding: 40px; background: #111; }
+        .rock { font-size: 50px; cursor: pointer; user-select: none; transition: 0.1s; display: inline-block; }
+        .rock:active { transform: scale(0.8) rotate(10deg); }
+        #progress-bar { width: 300px; height: 20px; border: 1px solid #44ff44; margin: 20px auto; }
+        #progress-fill { width: 0%; height: 100%; background: #44ff44; transition: 0.3s; }
+        .warning { color: red; font-weight: bold; animation: blink 0.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>[ 地下労働セクター B-1 ]</h1>
-        <p>石炭を77回採掘して、今日の完了コードを取得せよ。</p>
-        <h2 id="counter">0 / 77</h2>
-        <button id="mineBtn">採掘実行</button>
-        <div id="finishArea" class="hidden">
-            <p>労働完了。以下のコードをDiscordで入力せよ：</p>
-            <div id="resultCode" class="code"></div>
+    <div id="labor-box">
+        <h1>⛏️ 第四強制労働区 ⛏️</h1>
+        <p>石を砕いて「クズ鉄」を150個集めろ。サボるな。</p>
+        
+        <div id="status">監視中...</div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+        <h2 id="counter">0 / 150</h2>
+        
+        <div id="rock-area">
+            <div class="rock" id="rock">🪨</div>
+        </div>
+
+        <div id="finishArea" style="display:none;">
+            <p class="warning">労働完了。解放コードをメモせよ：</p>
+            <h2 id="resultCode" style="color:yellow; font-size:30px;"></h2>
         </div>
     </div>
 
     <script>
-        // クライアントID（BotのApplication ID）に書き換えてください
-        const discordSdk = new window.discordSdk.DiscordSDK("あなたのBotのApplicationID");
-
-        async function setupDiscord() {
-            try { await discordSdk.ready(); } catch(e) { console.log("Discord外での閲覧中"); }
-        }
-        setupDiscord();
-
-        // 日替わりパスワード生成 (Bot側と一致させる)
-        function generateDailyCode() {
-            const date = new Date().toISOString().slice(0, 10); // "2023-10-27"
-            return "LABOR-" + btoa(date).slice(0, 5).toUpperCase();
-        }
+        const discordSdk = new window.discordSdk.DiscordSDK("1455043505750806703");
+        async function setup() { await discordSdk.ready(); }
+        setup();
 
         let count = 0;
-        const btn = document.getElementById('mineBtn');
-        const counter = document.getElementById('counter');
-        const finishArea = document.getElementById('finishArea');
-        const resultCode = document.getElementById('resultCode');
+        let lastClick = Date.now();
+        const quota = 150; // ノルマを150に増加
 
-        btn.onclick = () => {
+        // 日替わりコード
+        const date = new Date().toISOString().slice(0, 10);
+        const dailyCode = "LABOR-" + btoa(date).slice(0, 5).toUpperCase();
+
+        const rock = document.getElementById('rock');
+        const fill = document.getElementById('progress-fill');
+        const counter = document.getElementById('counter');
+
+        rock.onclick = () => {
             count++;
-            counter.innerText = count + " / 77";
-            if(count >= 77) {
-                btn.classList.add('hidden');
-                finishArea.classList.remove('hidden');
-                resultCode.innerText = generateDailyCode();
+            lastClick = Date.now();
+            updateUI();
+            
+            // 叩くたびに岩が揺れる演出
+            rock.style.marginLeft = Math.random() * 10 + "px";
+            
+            if(count >= quota) {
+                document.getElementById('rock-area').style.display = 'none';
+                document.getElementById('finishArea').style.display = 'block';
+                document.getElementById('resultCode').innerText = dailyCode;
+                document.getElementById('status').innerText = "ノルマ達成";
             }
         };
+
+        function updateUI() {
+            counter.innerText = `${count} / ${quota}`;
+            fill.style.width = (count / quota * 100) + "%";
+        }
+
+        // 監視システム：5秒間操作がないとカウントが少し減る（大変にする演出）
+        setInterval(() => {
+            if (Date.now() - lastClick > 5000 && count > 0 && count < quota) {
+                count--;
+                updateUI();
+                document.getElementById('status').innerHTML = "<span class='warning'>⚠️ 監視員「おい、手が止まってるぞ！」 (-1)</span>";
+            } else if (count < quota) {
+                document.getElementById('status').innerText = "監視中...";
+            }
+        }, 2000);
     </script>
 </body>
 </html>
