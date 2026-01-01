@@ -17,7 +17,7 @@
         .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; z-index: 500; display: block; -webkit-tap-highlight-color: transparent; transition: left 0.1s, top 0.1s; }
         .rock:active { transform: translate(-50%, -50%) scale(0.7); }
 
-        /* 停電（オーバーレイ） */
+        /* 停電 */
         #blackout {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: black; pointer-events: none; z-index: 800; opacity: 0;
@@ -32,7 +32,6 @@
         .danger { animation: shake 0.1s infinite; color: #f00 !important; }
         @keyframes shake { 0% { transform: translate(0); } 50% { transform: translate(2px, 2px); } 100% { transform: translate(0); } }
         
-        /* 疲労エフェクト */
         #fatigue { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 900; background: rgba(255,0,0,0); transition: background 0.5s; }
     </style>
 </head>
@@ -45,7 +44,7 @@
 
     <div id="game-screen">
         <div id="ui">
-            <h2 id="counter">進捗: 0 / 1000</h2>
+            <h2 id="counter">進捗: 0 / 500</h2>
             <div id="status">石を叩け！</div>
         </div>
         <div id="rock" class="rock" onclick="hit(event)">🪨</div>
@@ -56,7 +55,7 @@
         <p>完了コード:</p>
         <div id="resultCode" class="code-box"></div>
         <button class="copy-btn" onclick="copyCode()">コードをコピー</button>
-        <p style="font-size: 0.8em; margin-top: 20px;">コピーしてDiscordの /claim で報告せよ<br>報告後はページを更新すれば再労働可能だ</p>
+        <p style="font-size: 0.8em; margin-top: 20px;">コピーしてDiscordの /claim で報告せよ</p>
     </div>
 
     <script>
@@ -68,7 +67,7 @@
         const fatigue = document.getElementById('fatigue');
 
         let count = 0;
-        const quota = 1000; // 千回
+        const quota = 500; // 500回に変更
         let isBlackout = false;
 
         if (!uid || isNaN(uid) || uid.length < 15) {
@@ -90,26 +89,18 @@
             count++;
             document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
             
-            // 進捗状況に応じた演出
-            if (count === 250) status.innerText = "まだまだ先は長いぞ。";
-            if (count === 500) {
+            if (count === 125) status.innerText = "まだまだだぞ。";
+            if (count === 250) {
                 status.innerText = "半分だ。石が硬くなってきた。";
                 rock.innerText = "⛏️"; 
             }
-            if (count === 750) {
-                status.innerText = "手が震えているのか？";
-                fatigue.style.background = "rgba(255, 0, 0, 0.1)";
-            }
-            if (count === 900) {
-                status.classList.add('danger');
+            if (count === 400) {
                 status.innerText = "あと少しだ、死ぬ気で叩け！";
+                status.classList.add('danger');
                 fatigue.style.background = "rgba(255, 0, 0, 0.2)";
             }
 
-            // 停電チェック (50回以降、ランダムで発生)
-            if (count > 50 && Math.random() < 0.05 && !isBlackout) {
-                triggerBlackout();
-            }
+            if (count > 30 && Math.random() < 0.05 && !isBlackout) triggerBlackout();
 
             move();
 
@@ -128,36 +119,29 @@
             blackout.style.opacity = 1;
             const originalStatus = status.innerText;
             status.innerText = "⚠️ 停電発生！手元を照らして石を探せ！";
-            
             setTimeout(() => {
                 isBlackout = false;
                 blackout.style.opacity = 0;
                 status.innerText = originalStatus;
-            }, 4000 + Math.random() * 3000);
+            }, 3000 + Math.random() * 2000);
         }
 
         function move() {
-            // 1000回に向けて、徐々に石を小さくする計算式を調整
-            const size = Math.max(20, 80 - (count / 15));
+            const size = Math.max(25, 80 - (count / 8));
             rock.style.fontSize = size + "px";
-
             const x = Math.floor(Math.random() * 75) + 12;
             const y = Math.floor(Math.random() * 65) + 20;
             rock.style.left = x + "%";
             rock.style.top = y + "%";
         }
 
+        // --- Pythonと同期したシンプル計算ロジック ---
         function generateSecret(id) {
-            const now = new Date();
-            const timeKey = Math.floor(now.getTime() / 10000); 
-            const salt = "SECRET_ZIMU_99"; 
-            const raw = id + timeKey + salt;
-            let hash = 0;
-            for (let i = 0; i < raw.length; i++) {
-                hash = ((hash << 5) - hash) + raw.charCodeAt(i);
-                hash |= 0; 
-            }
-            return "RX-" + Math.abs(hash).toString(36).toUpperCase() + "-" + btoa(id + timeKey).slice(-5).toUpperCase();
+            const timeKey = Math.floor(new Date().getTime() / 60000); // 60秒更新
+            const uidInt = parseInt(id);
+            const secretNum = (uidInt + timeKey) * 7;
+            const code = secretNum.toString(16).toUpperCase();
+            return "WORK-" + code;
         }
 
         function copyCode() {
