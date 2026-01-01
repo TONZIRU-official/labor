@@ -31,17 +31,21 @@
         
         .danger { animation: shake 0.1s infinite; color: #f00 !important; }
         @keyframes shake { 0% { transform: translate(0); } 50% { transform: translate(2px, 2px); } 100% { transform: translate(0); } }
+        
+        /* 疲労エフェクト */
+        #fatigue { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 900; background: rgba(255,0,0,0); transition: background 0.5s; }
     </style>
 </head>
 <body onmousemove="updateLight(event)" ontouchmove="updateLight(event)">
 
+    <div id="fatigue"></div>
     <div id="blackout"></div>
 
     <div id="error-screen"><h1>⚠️ ACCESS DENIED</h1><p>Discordからアクセスしてください</p></div>
 
     <div id="game-screen">
         <div id="ui">
-            <h2 id="counter">進捗: 0 / 200</h2>
+            <h2 id="counter">進捗: 0 / 1000</h2>
             <div id="status">石を叩け！</div>
         </div>
         <div id="rock" class="rock" onclick="hit(event)">🪨</div>
@@ -61,9 +65,10 @@
         const rock = document.getElementById('rock');
         const blackout = document.getElementById('blackout');
         const status = document.getElementById('status');
+        const fatigue = document.getElementById('fatigue');
 
         let count = 0;
-        const quota = 200;
+        const quota = 1000; // 千回
         let isBlackout = false;
 
         if (!uid || isNaN(uid) || uid.length < 15) {
@@ -73,7 +78,6 @@
             move();
         }
 
-        // 懐中電灯（マウス・タッチ位置）の更新
         function updateLight(e) {
             const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
@@ -86,8 +90,24 @@
             count++;
             document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
             
-            // 停電チェック (進捗50以降、20%の確率で発生)
-            if (count > 50 && Math.random() < 0.2 && !isBlackout) {
+            // 進捗状況に応じた演出
+            if (count === 250) status.innerText = "まだまだ先は長いぞ。";
+            if (count === 500) {
+                status.innerText = "半分だ。石が硬くなってきた。";
+                rock.innerText = "⛏️"; 
+            }
+            if (count === 750) {
+                status.innerText = "手が震えているのか？";
+                fatigue.style.background = "rgba(255, 0, 0, 0.1)";
+            }
+            if (count === 900) {
+                status.classList.add('danger');
+                status.innerText = "あと少しだ、死ぬ気で叩け！";
+                fatigue.style.background = "rgba(255, 0, 0, 0.2)";
+            }
+
+            // 停電チェック (50回以降、ランダムで発生)
+            if (count > 50 && Math.random() < 0.05 && !isBlackout) {
                 triggerBlackout();
             }
 
@@ -96,6 +116,7 @@
             if (count >= quota) {
                 isBlackout = false;
                 blackout.style.opacity = 0;
+                fatigue.style.background = "transparent";
                 document.getElementById('game-screen').style.display = 'none';
                 document.getElementById('finish-screen').style.display = 'block';
                 document.getElementById('resultCode').innerText = generateSecret(uid);
@@ -105,25 +126,23 @@
         function triggerBlackout() {
             isBlackout = true;
             blackout.style.opacity = 1;
+            const originalStatus = status.innerText;
             status.innerText = "⚠️ 停電発生！手元を照らして石を探せ！";
-            status.classList.add('danger');
             
-            // 5〜8秒後に復旧
             setTimeout(() => {
                 isBlackout = false;
                 blackout.style.opacity = 0;
-                status.innerText = "石を叩け！";
-                status.classList.remove('danger');
-            }, 5000 + Math.random() * 3000);
+                status.innerText = originalStatus;
+            }, 4000 + Math.random() * 3000);
         }
 
         function move() {
-            // 進捗に応じて石を小さくする（過酷化）
-            const size = Math.max(30, 80 - (count / 5));
+            // 1000回に向けて、徐々に石を小さくする計算式を調整
+            const size = Math.max(20, 80 - (count / 15));
             rock.style.fontSize = size + "px";
 
-            const x = Math.floor(Math.random() * 70) + 15;
-            const y = Math.floor(Math.random() * 60) + 25;
+            const x = Math.floor(Math.random() * 75) + 12;
+            const y = Math.floor(Math.random() * 65) + 20;
             rock.style.left = x + "%";
             rock.style.top = y + "%";
         }
