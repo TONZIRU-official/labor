@@ -5,24 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>第四強制労働区</title>
     <style>
-        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; touch-action: manipulation; user-select: none; }
+        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; touch-action: none; user-select: none; }
         #error-screen { display: none; padding-top: 30vh; color: #ff4444; }
-        #game-screen { display: none; width: 100vw; height: 100vh; position: relative; background: #050505; }
+        #game-screen { display: none; width: 100vw; height: 100vh; position: relative; background: #050505; transition: background 0.2s; }
+        
+        /* UI */
         #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 10px; border-bottom: 2px solid #333; z-index: 1000; }
-        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; z-index: 500; display: block; -webkit-tap-highlight-color: transparent; }
-        .rock:active { transform: translate(-50%, -50%) scale(0.8); }
+        #status { color: #ff0; font-size: 0.9em; margin-top: 5px; }
+
+        /* 石 */
+        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; z-index: 500; display: block; -webkit-tap-highlight-color: transparent; transition: left 0.1s, top 0.1s; }
+        .rock:active { transform: translate(-50%, -50%) scale(0.7); }
+
+        /* 停電（オーバーレイ） */
+        #blackout {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; pointer-events: none; z-index: 800; opacity: 0;
+            mask-image: radial-gradient(circle 100px at var(--x) var(--y), transparent 100%, black 100%);
+            -webkit-mask-image: radial-gradient(circle 100px at var(--x) var(--y), transparent 80%, black 100%);
+        }
+
         #finish-screen { display: none; padding-top: 20vh; }
         .code-box { color: #ff0; font-size: 24px; border: 2px dashed #ff0; padding: 15px; display: block; margin: 20px auto; background: #111; width: 80%; word-break: break-all; }
         .copy-btn { background: #0f0; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        
+        .danger { animation: shake 0.1s infinite; color: #f00 !important; }
+        @keyframes shake { 0% { transform: translate(0); } 50% { transform: translate(2px, 2px); } 100% { transform: translate(0); } }
     </style>
 </head>
-<body>
+<body onmousemove="updateLight(event)" ontouchmove="updateLight(event)">
+
+    <div id="blackout"></div>
 
     <div id="error-screen"><h1>⚠️ ACCESS DENIED</h1><p>Discordからアクセスしてください</p></div>
 
     <div id="game-screen">
-        <div id="ui"><h2 id="counter">進捗: 0 / 200</h2><div id="status">石を叩け！</div></div>
-        <div id="rock" class="rock" onclick="hit()">🪨</div>
+        <div id="ui">
+            <h2 id="counter">進捗: 0 / 200</h2>
+            <div id="status">石を叩け！</div>
+        </div>
+        <div id="rock" class="rock" onclick="hit(event)">🪨</div>
     </div>
 
     <div id="finish-screen">
@@ -37,6 +59,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get('id');
         const rock = document.getElementById('rock');
+        const blackout = document.getElementById('blackout');
+        const status = document.getElementById('status');
+
+        let count = 0;
+        const quota = 200;
+        let isBlackout = false;
 
         if (!uid || isNaN(uid) || uid.length < 15) {
             document.getElementById('error-screen').style.display = 'block';
@@ -45,12 +73,63 @@
             move();
         }
 
-        let count = 0;
-        const quota = 200;
+        // 懐中電灯（マウス・タッチ位置）の更新
+        function updateLight(e) {
+            const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            document.documentElement.style.setProperty('--x', x + 'px');
+            document.documentElement.style.setProperty('--y', y + 'px');
+        }
+
+        function hit(e) {
+            if (count >= quota) return;
+            count++;
+            document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
+            
+            // 停電チェック (進捗50以降、20%の確率で発生)
+            if (count > 50 && Math.random() < 0.2 && !isBlackout) {
+                triggerBlackout();
+            }
+
+            move();
+
+            if (count >= quota) {
+                isBlackout = false;
+                blackout.style.opacity = 0;
+                document.getElementById('game-screen').style.display = 'none';
+                document.getElementById('finish-screen').style.display = 'block';
+                document.getElementById('resultCode').innerText = generateSecret(uid);
+            }
+        }
+
+        function triggerBlackout() {
+            isBlackout = true;
+            blackout.style.opacity = 1;
+            status.innerText = "⚠️ 停電発生！手元を照らして石を探せ！";
+            status.classList.add('danger');
+            
+            // 5〜8秒後に復旧
+            setTimeout(() => {
+                isBlackout = false;
+                blackout.style.opacity = 0;
+                status.innerText = "石を叩け！";
+                status.classList.remove('danger');
+            }, 5000 + Math.random() * 3000);
+        }
+
+        function move() {
+            // 進捗に応じて石を小さくする（過酷化）
+            const size = Math.max(30, 80 - (count / 5));
+            rock.style.fontSize = size + "px";
+
+            const x = Math.floor(Math.random() * 70) + 15;
+            const y = Math.floor(Math.random() * 60) + 25;
+            rock.style.left = x + "%";
+            rock.style.top = y + "%";
+        }
 
         function generateSecret(id) {
             const now = new Date();
-            // 10秒ごとに値が変わるキーを使用することで、連続クリアしても別のコードになる
             const timeKey = Math.floor(now.getTime() / 10000); 
             const salt = "SECRET_ZIMU_99"; 
             const raw = id + timeKey + salt;
@@ -60,25 +139,6 @@
                 hash |= 0; 
             }
             return "RX-" + Math.abs(hash).toString(36).toUpperCase() + "-" + btoa(id + timeKey).slice(-5).toUpperCase();
-        }
-
-        function move() {
-            const x = Math.floor(Math.random() * 70) + 15;
-            const y = Math.floor(Math.random() * 60) + 25;
-            rock.style.left = x + "%";
-            rock.style.top = y + "%";
-        }
-
-        function hit() {
-            if (count >= quota) return;
-            count++;
-            document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
-            move();
-            if (count >= quota) {
-                document.getElementById('game-screen').style.display = 'none';
-                document.getElementById('finish-screen').style.display = 'block';
-                document.getElementById('resultCode').innerText = generateSecret(uid);
-            }
         }
 
         function copyCode() {
