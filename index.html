@@ -136,12 +136,16 @@
         }
 
         // --- Pythonと同期したシンプル計算ロジック ---
+// --- 安定版：足し算ロジックに差し替え ---
         function generateSecret(id) {
-            const timeKey = Math.floor(new Date().getTime() / 60000); // 60秒更新
-            const uidInt = parseInt(id);
-            const secretNum = (uidInt + timeKey) * 7;
-            const code = secretNum.toString(16).toUpperCase();
-            return "WORK-" + code;
+            const now = new Date();
+            // 1分ごとに変わる数字（0〜59）
+            const timeKey = now.getMinutes(); 
+            // IDの末尾4桁を取り出し、分を足す（単純化してエラーを防ぐ）
+            const uidSuffix = parseInt(id.toString().slice(-4));
+            const simpleCode = uidSuffix + timeKey;
+            
+            return "WORK-" + simpleCode;
         }
 
         function copyCode() {
