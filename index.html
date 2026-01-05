@@ -136,15 +136,23 @@
         }
 
         // --- Pythonと同期したシンプル計算ロジック ---
-// --- 安定版：足し算ロジックに差し替え ---
+// --- 超・安定版：文字として処理するロジック ---
         function generateSecret(id) {
             const now = new Date();
-            // 1分ごとに変わる数字（0〜59）
+            // 1. 今の「分」を取得
             const timeKey = now.getMinutes(); 
-            // IDの末尾4桁を取り出し、分を足す（単純化してエラーを防ぐ）
-            const uidSuffix = parseInt(id.toString().slice(-4));
+            
+            // 2. IDを「文字(String)」として確実に扱い、後ろから4文字切り出す
+            const idStr = String(id);
+            const last4 = idStr.slice(-4);
+            
+            // 3. 切り出した4文字を「数値」に直す
+            const uidSuffix = parseInt(last4, 10);
+            
+            // 4. 数値同士を足して、WORK- をつけて返す
             const simpleCode = uidSuffix + timeKey;
             
+            console.log("生成ログ:", { "ID末尾": uidSuffix, "現在の分": timeKey, "結果": simpleCode });
             return "WORK-" + simpleCode;
         }
 
