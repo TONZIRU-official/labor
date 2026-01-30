@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大東州共和国 選挙管理システム</title>
+    <title>大東州共和国総選挙</title>
     <style>
         :root { --main-color: #00ff41; --bg-color: #0d0d0d; }
         body { background-color: var(--bg-color); color: var(--main-color); font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -11,32 +11,58 @@
         h1 { text-align: center; border-bottom: 2px solid var(--main-color); padding-bottom: 10px; font-size: 1.5rem; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; background: #222; border: 1px solid var(--main-color); color: var(--main-color); box-sizing: border-box; outline: none; }
+        input, select { width: 100%; padding: 10px; background: #222; border: 1px solid var(--main-color); color: var(--main-color); box-sizing: border-box; outline: none; margin-bottom: 10px; font-size: 1rem; }
         button { width: 100%; padding: 15px; background: var(--main-color); color: #000; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
         button:hover { background: #00cc33; box-shadow: 0 0 10px var(--main-color); }
         button:disabled { background: #444; color: #888; cursor: not-allowed; }
-        .status { margin-top: 15px; text-align: center; font-size: 0.9rem; min-height: 1.2em; }
+        .status { margin-top: 15px; text-align: center; font-size: 0.9rem; min-height: 1.2em; color: #ff4d4d; }
         .footer { margin-top: 30px; font-size: 0.7rem; text-align: center; color: #555; }
+        .vote-label { font-size: 0.8rem; color: #888; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>大東州共和国 選挙</h1>
-    <p style="text-align:center; font-size: 0.8rem;">--- 国会議員総選挙 投票所 ---</p>
+    <h1>第一回大東州議会議員総選挙</h1>
+    <p style="text-align:center; font-size: 0.8rem;">--- 大東州議会議員総選挙 投票所 ---</p>
 
     <div id="vote-section">
         <div class="form-group">
             <label for="mcid">Minecraft ID</label>
-            <input type="text" id="mcid" placeholder="MCIDを入力してください" required>
+            <input type="text" id="mcid" placeholder="正確なMCIDを入力してください" required>
         </div>
 
         <div class="form-group">
-            <label for="candidate">投票先</label>
-            <select id="candidate">
+            <label>投票先（別々の人を3名選択）</label>
+            <div class="vote-label">1票目</div>
+            <select class="candidate-select">
                 <option value="">-- 候補者を選択 --</option>
-                <option value="候補者A">候補者A (○○党)</option>
-                <option value="候補者B">候補者B (××党)</option>
+                <option value="shotaro shizoka">shotaro shizoka (あいらぶカジノ党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="白票">白票 (棄権)</option>
+            </select>
+
+            <div class="vote-label">2票目</div>
+            <select class="candidate-select">
+                <option value="">-- 候補者を選択 --</option>
+                <option value="shotaro shizoka">shotaro shizoka (あいらぶカジノ党)</option>
+                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
+                <option value="白票">白票 (棄権)</option>
+            </select>
+
+            <div class="vote-label">3票目</div>
+            <select class="candidate-select">
+                <option value="">-- 候補者を選択 --</option>
+                <option value="shotaro shizoka (あいらぶカジノ党)">shotaro shizoka (あいらぶカジノ党)</option>
+                <option value="Touyu 893 (豚汁党)">Touyu 893 (豚汁党)</option>
                 <option value="白票">白票 (棄権)</option>
             </select>
         </div>
@@ -52,45 +78,57 @@
 </div>
 
 <script>
-    // 【重要】ここにあなたのGAS URLを貼り付け
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwMqpSNlAIbp7_Hquai5ppW6_eXvHu4GoCiQBUpZRnn-CrevDL9sKCFX6Th9Y3jUZ_t/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz0qVsjI_Z6ImlsbrgujY21G0f6JoUoodb8u6icPIlrlGhOnmfT74IrxDSpcneY2Xid/exec";
 
     async function submitVote() {
         const mcid = document.getElementById('mcid').value.trim();
-        const candidate = document.getElementById('candidate').value;
+        const selects = document.querySelectorAll('.candidate-select');
+        const candidates = Array.from(selects).map(s => s.value);
         const btn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
 
-        if (!mcid || !candidate) {
-            status.innerText = "⚠️ 全項目を入力してください";
+        // 未入力チェック
+        if (!mcid || candidates.some(c => c === "")) {
+            status.innerText = "⚠️ 1票目から3票目まですべて選択してください";
             return;
         }
 
-        if (!confirm(`${mcid} として ${candidate} に投票します。よろしいですか？`)) return;
+        // 重複チェック（白票以外で同じ人が選ばれていないか）
+        const realVotes = candidates.filter(c => c !== "白票");
+        const uniqueVotes = new Set(realVotes);
+        if (realVotes.length !== uniqueVotes.size) {
+            status.style.color = "#ff4d4d";
+            status.innerText = "⚠️ 同じ候補者に重複して投票することはできません。別々の人を選んでください。";
+            return;
+        }
+
+        if (!confirm(`${mcid} として投票します。修正はできませんがよろしいですか？`)) return;
 
         btn.disabled = true;
+        status.style.color = "var(--main-color)";
         status.innerText = "⏳ サーバーと通信中...";
 
         try {
-            // GASへデータを送信
             const response = await fetch(GAS_URL, {
                 method: "POST",
-                body: JSON.stringify({ mcid: mcid, candidate: candidate })
+                body: JSON.stringify({ mcid: mcid, candidates: candidates })
             });
             const result = await response.json();
 
             if (result.status === "success") {
                 document.getElementById('vote-section').innerHTML = `
                     <h2 style="text-align:center;">投票完了</h2>
-                    <p style="text-align:center;">あなたの1票を受理しました。<br>大東州の発展にご協力感謝します。</p>
+                    <p style="text-align:center;">あなたの3票を受理しました。<br>大東州に栄光あれ</p>
                     <button onclick="location.reload()">戻る</button>
                 `;
             } else {
+                status.style.color = "#ff4d4d";
                 status.innerText = "❌ エラー: " + result.message;
                 btn.disabled = false;
             }
         } catch (e) {
-            status.innerText = "❌ 送信失敗。通信環境を確認してください。";
+            status.style.color = "#ff4d4d";
+            status.innerText = "❌ 送信失敗。サーバーが混雑している可能性があります。";
             btn.disabled = false;
         }
     }
