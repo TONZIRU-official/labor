@@ -2,163 +2,99 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>第四強制労働区</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大東州共和国 選挙管理システム</title>
     <style>
-        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; touch-action: none; user-select: none; }
-        #error-screen { display: none; padding-top: 30vh; color: #ff4444; }
-        #game-screen { display: none; width: 100vw; height: 100vh; position: relative; background: #050505; transition: background 0.2s; }
-        
-        /* UI */
-        #ui { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); padding: 10px; border-bottom: 2px solid #333; z-index: 1000; }
-        #status { color: #ff0; font-size: 0.9em; margin-top: 5px; }
-
-        /* 石 */
-        .rock { position: absolute; font-size: 80px; transform: translate(-50%, -50%); cursor: pointer; z-index: 500; display: block; -webkit-tap-highlight-color: transparent; transition: left 0.1s, top 0.1s; }
-        .rock:active { transform: translate(-50%, -50%) scale(0.7); }
-
-        /* 停電 */
-        #blackout {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; pointer-events: none; z-index: 800; opacity: 0;
-            mask-image: radial-gradient(circle 100px at var(--x) var(--y), transparent 100%, black 100%);
-            -webkit-mask-image: radial-gradient(circle 100px at var(--x) var(--y), transparent 80%, black 100%);
-        }
-
-        #finish-screen { display: none; padding-top: 20vh; }
-        .code-box { color: #ff0; font-size: 24px; border: 2px dashed #ff0; padding: 15px; display: block; margin: 20px auto; background: #111; width: 80%; word-break: break-all; }
-        
-        .danger { animation: shake 0.1s infinite; color: #f00 !important; }
-        @keyframes shake { 0% { transform: translate(0); } 50% { transform: translate(2px, 2px); } 100% { transform: translate(0); } }
-        
-        #fatigue { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 900; background: rgba(255,0,0,0); transition: background 0.5s; }
+        :root { --main-color: #00ff41; --bg-color: #0d0d0d; }
+        body { background-color: var(--bg-color); color: var(--main-color); font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { border: 2px solid var(--main-color); padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); background: rgba(0, 0, 0, 0.8); }
+        h1 { text-align: center; border-bottom: 2px solid var(--main-color); padding-bottom: 10px; font-size: 1.5rem; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; background: #222; border: 1px solid var(--main-color); color: var(--main-color); box-sizing: border-box; outline: none; }
+        button { width: 100%; padding: 15px; background: var(--main-color); color: #000; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        button:hover { background: #00cc33; box-shadow: 0 0 10px var(--main-color); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        .status { margin-top: 15px; text-align: center; font-size: 0.9rem; min-height: 1.2em; }
+        .footer { margin-top: 30px; font-size: 0.7rem; text-align: center; color: #555; }
     </style>
 </head>
-<body onmousemove="updateLight(event)" ontouchmove="updateLight(event)">
+<body>
 
-    <div id="fatigue"></div>
-    <div id="blackout"></div>
+<div class="container">
+    <h1>大東州共和国 選挙</h1>
+    <p style="text-align:center; font-size: 0.8rem;">--- 国会議員総選挙 投票所 ---</p>
 
-    <div id="error-screen"><h1>⚠️ ACCESS DENIED</h1><p>Discordからアクセスしてください</p></div>
-
-    <div id="game-screen">
-        <div id="ui">
-            <h2 id="counter">進捗: 0 / 1</h2>
-            <div id="status">石を叩け！</div>
+    <div id="vote-section">
+        <div class="form-group">
+            <label for="mcid">Minecraft ID</label>
+            <input type="text" id="mcid" placeholder="MCIDを入力してください" required>
         </div>
-        <div id="rock" class="rock" onclick="hit(event)">🪨</div>
+
+        <div class="form-group">
+            <label for="candidate">投票先</label>
+            <select id="candidate">
+                <option value="">-- 候補者を選択 --</option>
+                <option value="候補者A">候補者A (○○党)</option>
+                <option value="候補者B">候補者B (××党)</option>
+                <option value="白票">白票 (棄権)</option>
+            </select>
+        </div>
+
+        <button id="submitBtn" onclick="submitVote()">投票を送信</button>
+        <div id="status" class="status"></div>
     </div>
 
-    <div id="finish-screen">
-        <h1>⛏️ 作業完了 ⛏️</h1>
-        <p>報酬振込ステータス:</p>
-        <div id="resultStatus" class="code-box">データを送信中...</div>
-        <p style="font-size: 0.8em; margin-top: 20px;">送信が完了するとDiscordで自動振込されます。<br>このままお待ちください。</p>
+    <div class="footer">
+        &copy; 大東州共和国 選挙管理委員会<br>
+        Powered by AI Election System
     </div>
+</div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const uid = urlParams.get('id');
-        const rock = document.getElementById('rock');
-        const blackout = document.getElementById('blackout');
+<script>
+    // 【重要】ここにあなたのGAS URLを貼り付け
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwMqpSNlAIbp7_Hquai5ppW6_eXvHu4GoCiQBUpZRnn-CrevDL9sKCFX6Th9Y3jUZ_t/exec";
+
+    async function submitVote() {
+        const mcid = document.getElementById('mcid').value.trim();
+        const candidate = document.getElementById('candidate').value;
+        const btn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
-        const fatigue = document.getElementById('fatigue');
 
-        let count = 0;
-        const quota = 1; 
-        let isBlackout = false;
-
-        // IDチェック（数値・文字列両方に対応するため厳しすぎないチェック）
-        if (!uid || uid.length < 15) {
-            document.getElementById('error-screen').style.display = 'block';
-        } else {
-            document.getElementById('game-screen').style.display = 'block';
-            move();
+        if (!mcid || !candidate) {
+            status.innerText = "⚠️ 全項目を入力してください";
+            return;
         }
 
-        function updateLight(e) {
-            const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-            const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-            document.documentElement.style.setProperty('--x', x + 'px');
-            document.documentElement.style.setProperty('--y', y + 'px');
-        }
+        if (!confirm(`${mcid} として ${candidate} に投票します。よろしいですか？`)) return;
 
-        function hit(e) {
-            if (count >= quota) return;
-            count++;
-            document.getElementById('counter').innerText = `進捗: ${count} / ${quota}`;
-            
-            if (count === 125) status.innerText = "まだまだだぞ。";
-            if (count === 250) {
-                status.innerText = "半分だ。石が硬くなってきた。";
-                rock.innerText = "⛏️"; 
-            }
-            if (count === 400) {
-                status.innerText = "あと少しだ、死ぬ気で叩け！";
-                status.classList.add('danger');
-                fatigue.style.background = "rgba(255, 0, 0, 0.2)";
-            }
+        btn.disabled = true;
+        status.innerText = "⏳ サーバーと通信中...";
 
-            if (count > 30 && Math.random() < 0.05 && !isBlackout) triggerBlackout();
-
-            move();
-
-            if (count >= quota) {
-                sendLaborReport();
-            }
-        }
-
-        function sendLaborReport() {
-            isBlackout = false;
-            blackout.style.opacity = 0;
-            fatigue.style.background = "transparent";
-            document.getElementById('game-screen').style.display = 'none';
-            document.getElementById('finish-screen').style.display = 'block';
-
-            const webhookUrl = "https://discord.com/api/webhooks/1457711480966479996/5vgb6kNR_bJV26ZOWAD9y2JWJeGWcSs6OcESoOiDpLeQUxMO6EhyNxIZrbhZlvYhznam";
-            
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: `【労働完了報告】\nUSER_ID: ${uid}\nSTATUS: #DONE`
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById('resultStatus').innerText = "✅ 送信完了";
-                    document.getElementById('resultStatus').style.color = "#0f0";
-                } else {
-                    document.getElementById('resultStatus').innerText = "⚠️ 送信失敗（再読み込みしてください）";
-                    document.getElementById('resultStatus').style.color = "#ff4444";
-                }
-            })
-            .catch(err => {
-                document.getElementById('resultStatus').innerText = "❌ 通信エラー";
-                document.getElementById('resultStatus').style.color = "#ff4444";
+        try {
+            // GASへデータを送信
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ mcid: mcid, candidate: candidate })
             });
-        }
+            const result = await response.json();
 
-        function triggerBlackout() {
-            isBlackout = true;
-            blackout.style.opacity = 1;
-            const originalStatus = status.innerText;
-            status.innerText = "⚠️ 停電発生！手元を照らして石を探せ！";
-            setTimeout(() => {
-                isBlackout = false;
-                blackout.style.opacity = 0;
-                status.innerText = originalStatus;
-            }, 3000 + Math.random() * 2000);
+            if (result.status === "success") {
+                document.getElementById('vote-section').innerHTML = `
+                    <h2 style="text-align:center;">投票完了</h2>
+                    <p style="text-align:center;">あなたの1票を受理しました。<br>大東州の発展にご協力感謝します。</p>
+                    <button onclick="location.reload()">戻る</button>
+                `;
+            } else {
+                status.innerText = "❌ エラー: " + result.message;
+                btn.disabled = false;
+            }
+        } catch (e) {
+            status.innerText = "❌ 送信失敗。通信環境を確認してください。";
+            btn.disabled = false;
         }
+    }
+</script>
 
-        function move() {
-            const size = Math.max(25, 80 - (count / 8));
-            rock.style.fontSize = size + "px";
-            const x = Math.floor(Math.random() * 75) + 12;
-            const y = Math.floor(Math.random() * 65) + 20;
-            rock.style.left = x + "%";
-            rock.style.top = y + "%";
-        }
-    </script>
 </body>
 </html>
