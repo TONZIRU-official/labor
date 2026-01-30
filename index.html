@@ -34,40 +34,18 @@
 
         <div class="form-group">
             <label>投票先（別々の人を3名選択）</label>
+            
             <div class="vote-label">1票目</div>
-            <select class="candidate-select">
-                <option value="">-- 候補者を選択 --</option>
-                <option value="shotaro shizoka">shotaro shizoka (あいらぶカジノ党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="白票">白票 (棄権)</option>
-            </select>
+            <select class="candidate-select" id="c1"><option>⏳ 読み込み中...</option></select>
 
             <div class="vote-label">2票目</div>
-            <select class="candidate-select">
-                <option value="">-- 候補者を選択 --</option>
-                <option value="shotaro shizoka">shotaro shizoka (あいらぶカジノ党)</option>
-                <option value="Touyu 893">Touyu 893 (豚汁党)</option>
-                <option value="白票">白票 (棄権)</option>
-            </select>
+            <select class="candidate-select" id="c2"><option>⏳ 読み込み中...</option></select>
 
             <div class="vote-label">3票目</div>
-            <select class="candidate-select">
-                <option value="">-- 候補者を選択 --</option>
-                <option value="shotaro shizoka (あいらぶカジノ党)">shotaro shizoka (あいらぶカジノ党)</option>
-                <option value="Touyu 893 (豚汁党)">Touyu 893 (豚汁党)</option>
-                <option value="白票">白票 (棄権)</option>
-            </select>
+            <select class="candidate-select" id="c3"><option>⏳ 読み込み中...</option></select>
         </div>
 
-        <button id="submitBtn" onclick="submitVote()">投票を送信</button>
+        <button id="submitBtn" onclick="submitVote()" disabled>候補者読み込み中...</button>
         <div id="status" class="status"></div>
     </div>
 
@@ -80,6 +58,36 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbz0qVsjI_Z6ImlsbrgujY21G0f6JoUoodb8u6icPIlrlGhOnmfT74IrxDSpcneY2Xid/exec";
 
+    // 🚀 ページ読み込み時に候補者一覧をGASから取得
+    window.onload = async function() {
+        const selects = document.querySelectorAll('.candidate-select');
+        const btn = document.getElementById('submitBtn');
+        const status = document.getElementById('status');
+        
+        try {
+            const response = await fetch(GAS_URL);
+            const candidates = await response.json();
+
+            selects.forEach(select => {
+                select.innerHTML = '<option value="">-- 候補者を選択 --</option>';
+                candidates.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.name;
+                    opt.innerText = `${c.name} (${c.party})`;
+                    select.appendChild(opt);
+                });
+                const blank = document.createElement('option');
+                blank.value = "白票";
+                blank.innerText = "白票 (棄権)";
+                select.appendChild(blank);
+            });
+            btn.disabled = false;
+            btn.innerText = "投票を送信";
+        } catch (e) {
+            status.innerText = "❌ 候補者リストの取得に失敗しました。";
+        }
+    };
+
     async function submitVote() {
         const mcid = document.getElementById('mcid').value.trim();
         const selects = document.querySelectorAll('.candidate-select');
@@ -87,22 +95,19 @@
         const btn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
 
-        // 未入力チェック
         if (!mcid || candidates.some(c => c === "")) {
-            status.innerText = "⚠️ 1票目から3票目まですべて選択してください";
+            status.innerText = "⚠️ すべての票を選択してください";
             return;
         }
 
-        // 重複チェック（白票以外で同じ人が選ばれていないか）
         const realVotes = candidates.filter(c => c !== "白票");
         const uniqueVotes = new Set(realVotes);
         if (realVotes.length !== uniqueVotes.size) {
-            status.style.color = "#ff4d4d";
-            status.innerText = "⚠️ 同じ候補者に重複して投票することはできません。別々の人を選んでください。";
+            status.innerText = "⚠️ 同じ候補者に重複して投票することはできません。";
             return;
         }
 
-        if (!confirm(`${mcid} として投票します。修正はできませんがよろしいですか？`)) return;
+        if (!confirm(`${mcid} として投票します。よろしいですか？`)) return;
 
         btn.disabled = true;
         status.style.color = "var(--main-color)";
@@ -127,8 +132,7 @@
                 btn.disabled = false;
             }
         } catch (e) {
-            status.style.color = "#ff4d4d";
-            status.innerText = "❌ 送信失敗。サーバーが混雑している可能性があります。";
+            status.innerText = "❌ 送信失敗しました。";
             btn.disabled = false;
         }
     }
