@@ -82,7 +82,7 @@
 </div>
 
 <script>
-    // ★HTMLに直接名簿を放り込みました
+    // 選挙人名簿（直接HTMLに保持）
     const VOTER_LIST = [
         "nyokki1958", "daran0289", "maikuraumai", "kenti7599", "SoftMusic096337", 
         "TempOwl79825726", "SlightSum8834", "yutakabicchi", "shotaro shizoka", "Tankichi1", 
@@ -97,7 +97,8 @@
         "TANAKA7403", "hamburger3584", "Touyu 893", "xTZxJP", "LEMONZZKIRBY", "wUuUw o0O"
     ];
 
-    const GAS_URL = "あなたのGASデプロイURL";
+    // デプロイしたGASのURLを入れてください
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyEtD-awfQYxtSNxtn7g3Ck4dscTWAJ_0VeAyK1Yplh259x9mdvVxg8icqXMzEU00Fs/exec";
 
     async function submitVote() {
         const mcid = document.getElementById('mcid').value.trim();
@@ -106,7 +107,7 @@
         const btn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
 
-        // --- ① 名簿チェック（HTML内で実行） ---
+        // --- ① 名簿チェック ---
         if (!VOTER_LIST.includes(mcid)) {
             status.style.color = "#ff4d4d";
             status.innerText = "❌ あなたは選挙人名簿に登録がないか、MCIDが間違っています。";
@@ -119,7 +120,7 @@
             return;
         }
 
-        // 重複チェック
+        // 重複チェック（白票以外）
         const realVotes = candidates.filter(c => c !== "白票");
         const uniqueVotes = new Set(realVotes);
         if (realVotes.length !== uniqueVotes.size) {
@@ -145,6 +146,7 @@
                 document.getElementById('vote-section').innerHTML = `
                     <h2 style="text-align:center;">投票完了</h2>
                     <p style="text-align:center;">受理されました。<br>大東州に栄光あれ</p>
+                    <button onclick="location.reload()" style="margin-top:20px;">戻る</button>
                 `;
             } else {
                 status.style.color = "#ff4d4d";
@@ -158,3 +160,5 @@
         }
     }
 </script>
+</body>
+</html>
