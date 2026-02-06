@@ -82,7 +82,8 @@
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbz0qVsjI_Z6ImlsbrgujY21G0f6JoUoodb8u6icPIlrlGhOnmfT74IrxDSpcneY2Xid/exec";
+    // 先ほど作成した「選挙人名簿チェック付きGAS」のURLを貼ってください
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzvSzAYYTiqGYu-kaEnkDBDDaZaKrhK_vWWrGTfdFABkifiSOoeMSu9f7MYGoi93imVPA/exec";
 
     async function submitVote() {
         const mcid = document.getElementById('mcid').value.trim();
@@ -93,16 +94,16 @@
 
         if (!mcid || candidates.some(c => c === "")) {
             status.style.color = "#ff4d4d";
-            status.innerText = "⚠️ 全ての票を選択してください。";
+            status.innerText = "⚠️ 全ての項目を選択してください";
             return;
         }
 
-        // 重複チェック（白票以外）
+        // 白票以外の重複チェック
         const realVotes = candidates.filter(c => c !== "白票");
         const uniqueVotes = new Set(realVotes);
         if (realVotes.length !== uniqueVotes.size) {
             status.style.color = "#ff4d4d";
-            status.innerText = "⚠️ 同一候補者に重複投票はできません。別々の人を選んでください。";
+            status.innerText = "⚠️ 同じ候補者に重複投票はできません。";
             return;
         }
 
@@ -110,7 +111,7 @@
 
         btn.disabled = true;
         status.style.color = "var(--main-color)";
-        status.innerText = "⏳ サーバーと通信中...";
+        status.innerText = "⏳ 選挙人名簿を照合中...";
 
         try {
             const response = await fetch(GAS_URL, {
@@ -121,21 +122,24 @@
 
             if (result.status === "success") {
                 document.getElementById('vote-section').innerHTML = `
-                    <h2 style="text-align:center;">投票完了</h2>
-                    <p style="text-align:center;">あなたの3票を受理しました。<br>大東州に</p>
-                    <button onclick="location.reload()" style="margin-top:20px;">戻る</button>
+                    <h2 style="text-align:center;">投票受理</h2>
+                    <p style="text-align:center;">投票しました。<br>大東州に栄光あれ</p>
+                    <button onclick="location.reload()">戻る</button>
                 `;
             } else {
                 status.style.color = "#ff4d4d";
-                status.innerText = "❌ エラー: " + result.message;
+                status.innerText = "❌ " + result.message;
                 btn.disabled = false;
             }
         } catch (e) {
             status.style.color = "#ff4d4d";
-            status.innerText = "❌ 送信失敗。ネット接続を確認してください。";
+            status.innerText = "❌ 通信エラー。再度お試しください。";
             btn.disabled = false;
         }
     }
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
