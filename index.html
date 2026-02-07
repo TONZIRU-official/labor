@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大東州共和国総選挙</title>
+    <title>大豪州共和国総選挙</title>
     <style>
         :root { --main-color: #00ff41; --bg-color: #0d0d0d; }
         body { background-color: var(--bg-color); color: var(--main-color); font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -23,8 +23,8 @@
 <body>
 
 <div class="container">
-    <h1>第一回大東州議会議員総選挙</h1>
-    <p style="text-align:center; font-size: 0.8rem;">--- 大東州議会議員総選挙 投票所 ---</p>
+    <h1>第一回大豪州議会議員総選挙</h1>
+    <p style="text-align:center; font-size: 0.8rem;">--- 大豪州議会議員総選挙 投票所 ---</p>
 
     <div id="vote-section">
         <div class="form-group">
@@ -76,7 +76,7 @@
     </div>
 
     <div class="footer">
-        &copy; 大東州共和国 選挙管理委員会<br>
+        &copy; 大豪州共和国 選挙管理委員会<br>
         Powered by AI Election System
     </div>
 </div>
@@ -146,7 +146,7 @@
             if (result.status === "success") {
                 document.getElementById('vote-section').innerHTML = `
                     <h2 style="text-align:center;">投票完了</h2>
-                    <p style="text-align:center;">受理されました。<br>大東州に栄光あれ</p>
+                    <p style="text-align:center;">受理されました。<br>大豪州に栄光あれ</p>
                     <button onclick="location.reload()" style="margin-top:20px;">戻る</button>
                 `;
             } else {
