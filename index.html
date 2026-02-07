@@ -82,7 +82,6 @@
 </div>
 
 <script>
-    // 選挙人名簿（直接HTMLに保持）
     const VOTER_LIST = [
         "nyokki1958", "daran0289", "maikuraumai", "kenti7599", "SoftMusic096337", 
         "TempOwl79825726", "SlightSum8834", "yutakabicchi", "shotaro shizoka", "Tankichi1", 
@@ -98,7 +97,7 @@
         "ExpertDuck64957", "raipoyo114514", "tokonoma7723", "moroheiyoshi", "yuyuotouto1126"
     ];
 
-    // デプロイしたGASのURLを入れてください
+
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyfHXAuqwDIQ5Pi65RIvZ9QiAmqWgunOfPQt9lWHrzsfVcCX_BAQS2bSy17QPR6131P/exec";
 
     async function submitVote() {
@@ -108,7 +107,7 @@
         const btn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
 
-        // --- ① 名簿チェック ---
+
         if (!VOTER_LIST.includes(mcid)) {
             status.style.color = "#ff4d4d";
             status.innerText = "❌ あなたは選挙人名簿に登録がないか、MCIDが間違っています。";
@@ -121,7 +120,7 @@
             return;
         }
 
-        // 重複チェック（白票以外）
+
         const realVotes = candidates.filter(c => c !== "白票");
         const uniqueVotes = new Set(realVotes);
         if (realVotes.length !== uniqueVotes.size) {
